@@ -1,0 +1,23 @@
+body {
+  background: #f5f5f5;
+}
+
+.Header {
+  background: #20232a;
+  color: #fff;
+}
+
+.App {
+  text-align: center;
+}
+
+.VideoContainer {
+  background: #fff;
+  height: 760px;
+  border-right: 1px solid #ececec;
+  padding: 20px;
+}
+
+.VideoBox {
+  width: 100%;
+}
