@@ -43,17 +43,13 @@ app.post("/login", async (req, res) => {
       users: [username]
     });
 
-    return res.json({
-      is_initiator: true
-    });
+    return res.send("ok");
   } else {
     if (channels[channel_index].users.indexOf(username) == -1) {
       console.log("channel created, so pushing user...");
       channels[channel_index].users.push(username);
 
-      return res.json({
-        is_initiator: false
-      });
+      return res.send("ok");
     }
   }
 

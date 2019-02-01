@@ -110,7 +110,7 @@ class LoginScreen extends Component {
           channel
         });
 
-        if (response.statusText == "OK") {
+        if (response.statusText === "OK") {
           this.setState({
             isLoading: false,
             username: "",
@@ -120,7 +120,6 @@ class LoginScreen extends Component {
           this.props.navigation.navigate("GroupChat", {
             username,
             channel,
-            is_initiator: response.data.is_initiator,
             pusher: this.pusher,
             my_channel: this.my_channel
           });
