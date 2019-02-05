@@ -19,7 +19,7 @@ body {
 }
 
 .VideoBox {
-	width: 50%;
+	width: 40%;
 }
 
 .ChatContainer {
@@ -68,10 +68,6 @@ body {
 
 .TextArea {
 	font-size: 13px;
-}
-
-.VideoBox {
-	width: 100%;
 }
 
 figure.figure {
