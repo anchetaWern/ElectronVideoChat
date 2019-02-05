@@ -1,20 +1,28 @@
 import React, { Component } from "react";
-import { Container, Row, Col, Button, Form } from "react-bootstrap";
+import { Container, Row, Col, Button, Form, Figure } from "react-bootstrap";
 import { Player, ControlBar } from "video-react";
+import { Scrollbars } from "react-custom-scrollbars";
 
 import Peer from "simple-peer";
+import Chatkit from "@pusher/chatkit-client";
 import axios from "axios";
 import Masonry from "react-masonry-component";
+import Dropzone from "react-dropzone";
 
-import ab2str from "../helpers/arrayBufferToString";
+const BASE_URL = "YOUR NGROK HTTPS URL";
 
-const BASE_URL = "YOUR HTTPS NGROK URL";
+const CHATKIT_TOKEN_PROVIDER_ENDPOINT =
+  "https://us1.pusherplatform.io/services/chatkit_token_provider/v1/532a51c1-72e1-43d9-95fa-55cd5108eaf1/token";
+const CHATKIT_INSTANCE_LOCATOR = process.env.REACT_APP_CHATKIT_INSTANCE_ID;
 
 class GroupChatScreen extends Component {
   state = {
-    is_initialized: false,
+    is_initialized: true,
     streams: [],
-    username: ""
+    messages: [],
+    show_load_earlier: false,
+    is_sending: false,
+    files: []
   };
 
   constructor(props) {
@@ -89,10 +97,6 @@ class GroupChatScreen extends Component {
         streams: [...prevState.streams, peer_video_stream]
       }));
     });
-
-    p.on("data", data => {
-      console.log(ab2str(data));
-    });
   };
 
   _createPeer = username => {
@@ -119,10 +123,12 @@ class GroupChatScreen extends Component {
 
   async componentDidMount() {
     const { navigation } = this.props;
+    this.user_id = navigation.getParam("user_id");
     this.username = navigation.getParam("username");
     this.channel = navigation.getParam("channel");
     this.pusher = navigation.getParam("pusher");
     this.my_channel = navigation.getParam("my_channel");
+    this.room_id = navigation.getParam("room_id");
 
     try {
       const response_data = await axios.post(`${BASE_URL}/users`, {
@@ -137,6 +143,25 @@ class GroupChatScreen extends Component {
     } catch (err) {
       console.log("error getting users: ", err);
     }
+
+    const tokenProvider = new Chatkit.TokenProvider({
+      url: CHATKIT_TOKEN_PROVIDER_ENDPOINT
+    });
+
+    const chatManager = new Chatkit.ChatManager({
+      instanceLocator: CHATKIT_INSTANCE_LOCATOR,
+      userId: this.user_id,
+      tokenProvider: tokenProvider
+    });
+
+    this.currentUser = await chatManager.connect();
+    await this.currentUser.subscribeToRoom({
+      roomId: this.room_id,
+      hooks: {
+        onMessage: this._onReceive
+      },
+      messageLimit: 10
+    });
 
     // (3) user A receives event (client-initiate-signaling) from user B and setups peer connection
     this.my_channel.bind("client-initiate-signaling", data => {
@@ -242,6 +267,16 @@ class GroupChatScreen extends Component {
     });
   };
 
+  _onFileDrop = files => {
+    this.setState({ files });
+  };
+
+  _onFileCancel = () => {
+    this.setState({
+      files: []
+    });
+  };
+
   render() {
     return (
       <Container fluid={true}>
@@ -253,17 +288,6 @@ class GroupChatScreen extends Component {
 
         {!this.state.is_initialized && <div className="loader">Loading...</div>}
 
-        <Form.Control
-          type="text"
-          placeholder="username"
-          value={this.state.username}
-          onChange={this.onTypeText}
-        />
-
-        <Button variant="primary" type="button" onClick={this._sendMessage}>
-          Send Message
-        </Button>
-
         {this.state.is_initialized && (
           <Row>
             <Col md={8} className="VideoContainer">
@@ -274,24 +298,279 @@ class GroupChatScreen extends Component {
                 {this._renderStreams()}
               </Masonry>
             </Col>
+
+            <Col md={4} className="ChatContainer">
+              <Row>
+                <Col className="Messages">
+                  <Scrollbars
+                    style={{ height: 580, width: 440 }}
+                    ref={c => {
+                      this.scrollComponent = c;
+                    }}
+                    autoHide={true}
+                  >
+                    {this.state.show_load_earlier && (
+                      <Button
+                        variant="link"
+                        className="SmallText"
+                        onClick={this._loadEarlierMessages}
+                        disabled={this.state.is_loading}
+                        block
+                      >
+                        {this.state.is_loading
+                          ? "Loading..."
+                          : "Load earlier messages"}
+                      </Button>
+                    )}
+
+                    <div className="MessageBoxes">{this._renderMessages()}</div>
+                  </Scrollbars>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col>
+                  <Form className="ChatForm">
+                    <Dropzone
+                      onDrop={this._onFileDrop}
+                      onFileDialogCancel={this._onFileCancel}
+                    >
+                      {({ getRootProps, getInputProps }) => (
+                        <div {...getRootProps()}>
+                          <input {...getInputProps()} />
+                          <span className="SmallText">
+                            {this.state.files.length
+                              ? "File selected"
+                              : "Select file"}
+                          </span>
+                        </div>
+                      )}
+                    </Dropzone>
+
+                    <Form.Group>
+                      <Form.Control
+                        as="textarea"
+                        rows="2"
+                        className="TextArea"
+                        onChange={this._updateMessage}
+                        value={this.state.message}
+                      />
+                    </Form.Group>
+
+                    <Button
+                      variant="primary"
+                      onClick={this._sendMessage}
+                      disabled={this.state.is_sending}
+                      block
+                    >
+                      {this.state.is_sending ? "Sending…" : "Send"}
+                    </Button>
+                  </Form>
+                </Col>
+              </Row>
+            </Col>
           </Row>
         )}
       </Container>
     );
   }
 
-  onTypeText = evt => {
-    this.setState({
-      username: evt.target.value
+  //
+
+  _renderMessageBox = msg => {
+    if (msg.user._id === this.user_id) {
+      return (
+        <div className="MessageRow Me">
+          <div
+            className="ChatBubble"
+            dangerouslySetInnerHTML={{ __html: msg.text }}
+            onClick={msg._downloadFile}
+          />
+
+          <div className="ChatAvatar">
+            <Figure>
+              <Figure.Image
+                width={30}
+                height={30}
+                src={msg.user.avatar}
+                thumbnail
+                roundedCircle
+              />
+            </Figure>
+            <div className="username">{msg.user.name}</div>
+          </div>
+        </div>
+      );
+    }
+
+    //
+
+    return (
+      <div className="MessageRow">
+        <div className="ChatAvatar">
+          <Figure>
+            <Figure.Image
+              width={30}
+              height={30}
+              src={msg.user.avatar}
+              thumbnail
+              roundedCircle
+            />
+          </Figure>
+          <div className="username">{msg.user.name}</div>
+        </div>
+
+        <div
+          className="ChatBubble"
+          dangerouslySetInnerHTML={{ __html: msg.text }}
+          onClick={msg._downloadFile}
+        />
+      </div>
+    );
+  };
+
+  _renderMessages = () => {
+    return this.state.messages.map(msg => {
+      return this._renderMessageBox(msg);
     });
   };
 
-  _sendMessage = () => {
-    const user = this.peers.find(item => {
-      return item.username === this.state.username;
+  _onReceive = async data => {
+    let { message } = await this.getMessageAndFile(data);
+
+    await this.setState(prevState => ({
+      messages: [...prevState.messages, message]
+    }));
+
+    if (this.state.messages.length > 4) {
+      this.setState({
+        show_load_earlier: true
+      });
+    }
+
+    setTimeout(() => {
+      this.scrollComponent.scrollToBottom();
+    }, 1000);
+  };
+
+  getMessageAndFile = async ({
+    id,
+    senderId,
+    sender,
+    text,
+    attachment,
+    createdAt
+  }) => {
+    let msg_data = {
+      _id: id,
+      text: text,
+      createdAt: new Date(createdAt),
+      user: {
+        _id: senderId,
+        name: sender.name,
+        avatar:
+          "https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_960_720.png"
+      }
+    };
+
+    if (attachment) {
+      const { link, name } = attachment;
+
+      msg_data.text += `<br/>attached:<br/><span class="link">${name}</a>`;
+      msg_data._downloadFile = async () => {
+        window.ipcRenderer.send("download-file", link);
+      };
+    }
+
+    return {
+      message: msg_data
+    };
+  };
+
+  _loadEarlierMessages = async () => {
+    this.setState({
+      is_loading: true
     });
-    if (user) {
-      user.peer.send(`you received a message from ${this.username}`);
+
+    const earliest_message_id = Math.min(
+      ...this.state.messages.map(m => parseInt(m._id))
+    );
+
+    try {
+      let messages = await this.currentUser.fetchMessages({
+        roomId: this.room_id,
+        initialId: earliest_message_id,
+        direction: "older",
+        limit: 10
+      });
+
+      if (!messages.length) {
+        this.setState({
+          show_load_earlier: false
+        });
+      }
+
+      let earlier_messages = [];
+
+      await this.asyncForEach(messages, async msg => {
+        let { message } = await this.getMessageAndFile(msg);
+        earlier_messages.push(message);
+      });
+
+      await this.setState(prevState => ({
+        messages: [...earlier_messages, ...prevState.messages]
+      }));
+    } catch (err) {
+      console.log("error occured while trying to load older messages", err);
+    }
+
+    await this.setState({
+      is_loading: false
+    });
+  };
+
+  asyncForEach = async (array, callback) => {
+    for (let index = 0; index < array.length; index++) {
+      await callback(array[index], index, array);
+    }
+  };
+
+  _updateMessage = evt => {
+    this.setState({
+      message: evt.target.value
+    });
+  };
+
+  _sendMessage = async () => {
+    let msg = {
+      text: this.state.message,
+      roomId: this.room_id
+    };
+
+    this.setState({
+      is_sending: true
+    });
+
+    if (this.state.files.length > 0) {
+      const file = this.state.files[0];
+      const filename = file.name;
+
+      msg.attachment = {
+        file: file,
+        name: `${filename}`,
+        type: "file"
+      };
+    }
+
+    try {
+      await this.currentUser.sendMessage(msg);
+      this.setState({
+        is_sending: false,
+        message: "",
+        files: []
+      });
+    } catch (err) {
+      console.log("error sending message: ", err);
     }
   };
 }

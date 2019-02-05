@@ -1,23 +1,100 @@
 body {
-  background: #f5f5f5;
+	background: #f5f5f5;
 }
 
 .Header {
-  background: #20232a;
-  color: #fff;
+	background: #20232a;
+	color: #fff;
 }
 
 .App {
-  text-align: center;
+	text-align: center;
 }
 
 .VideoContainer {
-  background: #fff;
-  height: 760px;
-  border-right: 1px solid #ececec;
-  padding: 20px;
+	background: #fff;
+	height: 760px;
+	border-right: 1px solid #ececec;
+	padding: 20px;
 }
 
 .VideoBox {
-  width: 100%;
+	width: 50%;
+}
+
+.ChatContainer {
+	height: 760px;
+	background: #dedede;
+}
+
+.Messages {
+	text-align: center;
+}
+
+.SmallText {
+	font-size: 14px;
+}
+
+.MessageRow.Me {
+	float: right;
+	clear: both;
+}
+
+.MessageRow {
+	float: left;
+	clear: both;
+}
+
+.ChatBubble {
+	background: #d1e7ff;
+	margin-bottom: 10px;
+	padding: 10px;
+	border-radius: 10px;
+	text-align: left;
+	font-size: 14px;
+	vertical-align: text-bottom;
+	max-width: 250px;
+}
+
+.ChatBubble,
+.ChatAvatar {
+	display: inline-block;
+	margin: 10px;
+}
+
+.Me .ChatBubble {
+	background: #fbfbfb;
+}
+
+.TextArea {
+	font-size: 13px;
+}
+
+.VideoBox {
+	width: 100%;
+}
+
+figure.figure {
+	margin: 0;
+}
+
+.username {
+	font-size: 12px;
+	line-height: 10px;
+}
+
+.ChatAvatar {
+	width: 50px;
+}
+
+.MessageBoxes {
+	width: 440px;
+}
+
+.ChatForm {
+	text-align: right;
+}
+
+.link {
+	color: #07c;
 }

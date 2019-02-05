@@ -2,6 +2,7 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var Pusher = require("pusher");
 const cors = require("cors");
+const Chatkit = require("@pusher/chatkit-server");
 
 require("dotenv").config();
 
@@ -19,6 +20,26 @@ var pusher = new Pusher({
   cluster: process.env.APP_CLUSTER
 });
 
+const chatkit = new Chatkit.default({
+  instanceLocator: `v1:us1:${process.env.CHATKIT_INSTANCE_ID}`,
+  key: process.env.CHATKIT_SECRET_KEY
+});
+
+const createUser = async (user_id, username) => {
+  try {
+    await chatkit.createUser({
+      id: user_id,
+      name: username
+    });
+  } catch (err) {
+    if (err.error === "services/chatkit/user_already_exists") {
+      console.log("user already exists: ", err);
+    } else {
+      console.log("error occurred: ", err);
+    }
+  }
+};
+
 app.get("/", (req, res) => {
   res.send("all is well...");
 });
@@ -32,25 +53,61 @@ app.post("/pusher/auth", (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { channel, username } = req.body;
+  const { channel, user_id, username } = req.body;
 
-  var channel_index = channels.findIndex(c => c.name == channel);
-  if (channel_index == -1) {
+  var channel_index = channels.findIndex(c => c.name === channel);
+  if (channel_index === -1) {
     console.log("channel not yet created, so creating one now...");
 
-    channels.push({
-      name: channel,
-      users: [username]
-    });
+    // create chatkit user
+    await createUser(user_id, username);
 
-    return res.send("ok");
-  } else {
-    if (channels[channel_index].users.indexOf(username) == -1) {
-      console.log("channel created, so pushing user...");
-      channels[channel_index].users.push(username);
+    // create chatkit room
+    try {
+      const room = await chatkit.createRoom({
+        creatorId: user_id,
+        name: channel
+      });
 
-      return res.send("ok");
+      channels.push({
+        id: room.id.toString(),
+        name: channel,
+        users: [
+          {
+            id: user_id,
+            name: username
+          }
+        ]
+      });
+
+      return res.json({
+        room_id: room.id.toString()
+      });
+    } catch (err) {
+      console.log("error creating room: ", err);
     }
+  } else {
+    const user_index = channels[channel_index].users.findIndex(
+      usr => usr.name === username
+    );
+    if (user_index === -1) {
+      console.log("channel created, so pushing user...");
+
+      await createUser(user_id, username);
+
+      channels[channel_index].users.push({
+        id: user_id,
+        name: username
+      });
+
+      return res.json({
+        room_id: channels[channel_index]["id"].toString()
+      });
+    }
+
+    return res.json({
+      room_id: channels[channel_index].id
+    });
   }
 
   return res.status(500).send("invalid user");
@@ -59,18 +116,22 @@ app.post("/login", async (req, res) => {
 app.post("/users", (req, res) => {
   const { channel, username } = req.body;
   const channel_data = channels.find(ch => {
-    return ch.name == channel;
+    return ch.name === channel;
   });
 
   let channel_users = [];
   if (channel_data) {
     channel_users = channel_data.users.filter(user => {
-      return user != username;
+      return user.name !== username;
     });
   }
 
+  const users = channel_users.map(usr => {
+    return usr.name;
+  });
+
   return res.json({
-    users: channel_users
+    users: users
   });
 });
 

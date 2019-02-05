@@ -118,6 +118,8 @@ class LoginScreen extends Component {
           });
 
           this.props.navigation.navigate("GroupChat", {
+            room_id: response.data.room_id,
+            user_id,
             username,
             channel,
             pusher: this.pusher,
