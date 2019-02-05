@@ -11,7 +11,7 @@ const RootNavigator = createSwitchNavigator(
     GroupChat: GroupChatScreen
   },
   {
-    initialRouteName: "GroupChat"
+    initialRouteName: "Login"
   }
 );
 
