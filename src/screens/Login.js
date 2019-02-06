@@ -10,7 +10,7 @@ const channel_name = uniquename();
 
 const PUSHER_APP_KEY = process.env.REACT_APP_PUSHER_APP_KEY;
 const PUSHER_APP_CLUSTER = process.env.REACT_APP_PUSHER_APP_CLUSTER;
-const BASE_URL = "YOUR HTTPS NGROK URL";
+const BASE_URL = "https://electron-videochat-authserver-gqxyymxnrs.now.sh";
 
 class LoginScreen extends Component {
   state = {
@@ -110,7 +110,7 @@ class LoginScreen extends Component {
           channel
         });
 
-        if (response.statusText === "OK") {
+        if (response.status === 200) {
           this.setState({
             isLoading: false,
             username: "",

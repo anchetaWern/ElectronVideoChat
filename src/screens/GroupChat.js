@@ -9,7 +9,7 @@ import axios from "axios";
 import Masonry from "react-masonry-component";
 import Dropzone from "react-dropzone";
 
-const BASE_URL = "YOUR NGROK HTTPS URL";
+const BASE_URL = "https://electron-videochat-authserver-gqxyymxnrs.now.sh";
 
 const CHATKIT_TOKEN_PROVIDER_ENDPOINT =
   "https://us1.pusherplatform.io/services/chatkit_token_provider/v1/532a51c1-72e1-43d9-95fa-55cd5108eaf1/token";
@@ -38,7 +38,14 @@ class GroupChatScreen extends Component {
   _connectToPeer = (username, stream = false) => {
     const peer_options = {
       initiator: this.is_initiator,
-      trickle: false
+      trickle: false,
+
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:global.stun.twilio.com:3478?transport=udp" }
+        ]
+      }
     };
 
     if (stream) {
@@ -147,21 +154,24 @@ class GroupChatScreen extends Component {
     const tokenProvider = new Chatkit.TokenProvider({
       url: CHATKIT_TOKEN_PROVIDER_ENDPOINT
     });
-
     const chatManager = new Chatkit.ChatManager({
       instanceLocator: CHATKIT_INSTANCE_LOCATOR,
       userId: this.user_id,
       tokenProvider: tokenProvider
     });
 
-    this.currentUser = await chatManager.connect();
-    await this.currentUser.subscribeToRoom({
-      roomId: this.room_id,
-      hooks: {
-        onMessage: this._onReceive
-      },
-      messageLimit: 10
-    });
+    try {
+      this.currentUser = await chatManager.connect();
+      await this.currentUser.subscribeToRoom({
+        roomId: this.room_id,
+        hooks: {
+          onMessage: this._onReceive
+        },
+        messageLimit: 10
+      });
+    } catch (err) {
+      console.log("cannot connect user to chatkit: ", err);
+    }
 
     // (3) user A receives event (client-initiate-signaling) from user B and setups peer connection
     this.my_channel.bind("client-initiate-signaling", data => {
