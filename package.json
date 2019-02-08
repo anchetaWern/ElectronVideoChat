@@ -10,6 +10,7 @@
     "pusher-js": "^4.3.1",
     "react": "^16.7.0",
     "react-bootstrap": "^1.0.0-beta.4",
+    "react-masonry-component": "^6.2.1",
     "react-dom": "^16.7.0",
     "react-navigation": "^3.0.9",
     "react-scripts": "2.1.3",
