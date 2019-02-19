@@ -1,6 +1,12 @@
 # ElectronVideoChat
 A video call and chat app created with React, Pusher Channels, Pusher Chatkit, and Simple Peer.
 
+You can read the tutorial here:
+
+- [Building a video call and chat app with Electron - Part 1: Adding WebRTC video streams](https://pusher.com/tutorials/video-call-electron-part-1)
+- [Building a video call and chat app - Part 2: Adding a group chat with Chatkit](https://pusher.com/tutorials/video-call-electron-part-2)
+- [Building a video call and chat app - Part 3: Packaging the app](https://pusher.com/tutorials/video-call-electron-part-3)
+
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/en/)
