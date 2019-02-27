@@ -11,8 +11,7 @@ import Dropzone from "react-dropzone";
 
 const BASE_URL = "https://electron-videochat-authserver-gqxyymxnrs.now.sh";
 
-const CHATKIT_TOKEN_PROVIDER_ENDPOINT =
-  "https://us1.pusherplatform.io/services/chatkit_token_provider/v1/532a51c1-72e1-43d9-95fa-55cd5108eaf1/token";
+const CHATKIT_TOKEN_PROVIDER_ENDPOINT = "YOUR CHATKIT TEST TOKEN PROVIDER URL";
 const CHATKIT_INSTANCE_LOCATOR = process.env.REACT_APP_CHATKIT_INSTANCE_ID;
 
 class GroupChatScreen extends Component {
