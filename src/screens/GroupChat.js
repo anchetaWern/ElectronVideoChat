@@ -4,7 +4,7 @@ import { Player, ControlBar } from "video-react";
 import { Scrollbars } from "react-custom-scrollbars";
 
 import Peer from "simple-peer";
-import Chatkit from "@pusher/chatkit-client";
+import { ChatManager, TokenProvider } from '@pusher/chatkit-client';
 import axios from "axios";
 import Masonry from "react-masonry-component";
 import Dropzone from "react-dropzone";
@@ -143,14 +143,10 @@ class GroupChatScreen extends Component {
       console.log("error getting users: ", err);
     }
 
-    const tokenProvider = new Chatkit.TokenProvider({
-      url: CHATKIT_TOKEN_PROVIDER_ENDPOINT
-    });
-
-    const chatManager = new Chatkit.ChatManager({
+    const chatManager = new ChatManager({
       instanceLocator: CHATKIT_INSTANCE_LOCATOR,
       userId: this.user_id,
-      tokenProvider: tokenProvider
+      tokenProvider: new TokenProvider({ url: CHATKIT_TOKEN_PROVIDER_ENDPOINT })
     });
 
     this.currentUser = await chatManager.connect();
