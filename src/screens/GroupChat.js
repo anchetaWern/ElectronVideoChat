@@ -127,7 +127,7 @@ class GroupChatScreen extends Component {
     this.channel = navigation.getParam("channel");
     this.pusher = navigation.getParam("pusher");
     this.my_channel = navigation.getParam("my_channel");
-    this.room_id = navigation.getParam("room_id");
+    this.room_id = navigation.getParam("room_id").toString();
 
     try {
       const response_data = await axios.post(`${BASE_URL}/users`, {
